@@ -28,7 +28,6 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.IconLoader
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
@@ -48,9 +47,10 @@ import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
 @Service(PROJECT)
-class RibProjectService(val project: Project) : AndroidDeviceRepository.Listener, Disposable {
+public class RibProjectService(public val project: Project) :
+  AndroidDeviceRepository.Listener, Disposable {
 
-  companion object {
+  public companion object {
     private const val TOOL_WINDOW_ID: String = "Ribs"
     private const val TOOL_WINDOW_TITLE: String = "Ribs"
     private const val TAB_NAME_RIBS: String = "Hierarchy"
@@ -69,7 +69,7 @@ class RibProjectService(val project: Project) : AndroidDeviceRepository.Listener
   private var isRefreshing: Boolean = false
   private var isLocating: Boolean = false
 
-  fun attach() {
+  public fun attach() {
     DumbService.getInstance(project).runWhenSmart {
       ApplicationManager.getApplication().runReadAction {
         androidDeviceRepository.addListener(this)
@@ -78,7 +78,7 @@ class RibProjectService(val project: Project) : AndroidDeviceRepository.Listener
     }
   }
 
-  fun refreshRibHierarchy() {
+  public fun refreshRibHierarchy() {
     if (isRefreshing) {
       return
     }
@@ -110,29 +110,30 @@ class RibProjectService(val project: Project) : AndroidDeviceRepository.Listener
                       isRefreshing = false
                     }
                   },
-                  executor
+                  executor,
                 )
               }
             }
-          })
+          },
+        )
     }
   }
 
-  fun highlightRib(id: UUID) {
+  public fun highlightRib(id: UUID) {
     val device: IDevice = selectedDevice ?: return
     LogcatRequestProcessor().execute(RibHighlightRequest(device, id))
   }
 
-  fun highlightView(id: UUID) {
+  public fun highlightView(id: UUID) {
     val device: IDevice = selectedDevice ?: return
     LogcatRequestProcessor().execute(RibHighlightRequest(device, id))
   }
 
-  fun isLocating(): Boolean {
+  public fun isLocating(): Boolean {
     return isLocating
   }
 
-  fun enableLocateMode() {
+  public fun enableLocateMode() {
     if (isLocating) {
       return
     }
@@ -157,7 +158,7 @@ class RibProjectService(val project: Project) : AndroidDeviceRepository.Listener
                       RibHierarchyBrowser.Model(
                         RibHost(payload.name, payload.application),
                         payload.selectedRibId,
-                        payload.selectedViewId
+                        payload.selectedViewId,
                       )
                     onModelUpdated(model)
                   }
@@ -167,14 +168,15 @@ class RibProjectService(val project: Project) : AndroidDeviceRepository.Listener
                     LogcatRequestProcessor().execute(EnableLocateModeRequest(device, false))
                   }
                 },
-                executor
+                executor,
               )
             }
           }
-        })
+        },
+      )
   }
 
-  fun selectDevice(device: IDevice?) {
+  public fun selectDevice(device: IDevice?) {
     if (selectedDevice == device) {
       return
     }
@@ -188,7 +190,7 @@ class RibProjectService(val project: Project) : AndroidDeviceRepository.Listener
     refreshRibHierarchy()
   }
 
-  fun hasSelectedDevice(): Boolean {
+  public fun hasSelectedDevice(): Boolean {
     return selectedDevice != null
   }
 
@@ -213,7 +215,7 @@ class RibProjectService(val project: Project) : AndroidDeviceRepository.Listener
       if (toolWindowManager.getToolWindow(TOOL_WINDOW_ID) == null) {
         val toolWindow: ToolWindow =
           toolWindowManager.registerToolWindow(TOOL_WINDOW_ID, true, ToolWindowAnchor.RIGHT)
-        toolWindow.setIcon(IconLoader.getIcon("/icons/rib.png"))
+        toolWindow.setIcon(RibIcons.RibIcon)
         toolWindow.title = TOOL_WINDOW_TITLE
 
         ribPanel = RibHierarchyPanel(project, model)
@@ -228,13 +230,13 @@ class RibProjectService(val project: Project) : AndroidDeviceRepository.Listener
   }
 
   private fun createRibContent(toolWindow: ToolWindow): Content {
-    val content = ContentFactory.SERVICE.getInstance().createContent(ribPanel, TAB_NAME_RIBS, true)
+    val content = ContentFactory.getInstance().createContent(ribPanel, TAB_NAME_RIBS, true)
     content.isCloseable = false
     toolWindow.contentManager.addContent(content)
     return content
   }
 
-  interface Listener {
-    fun onModelUpdated(model: RibHierarchyBrowser.Model)
+  public interface Listener {
+    public fun onModelUpdated(model: RibHierarchyBrowser.Model)
   }
 }

@@ -15,15 +15,13 @@
  */
 package com.uber.rib.flipper
 
-import android.util.Log
-import android.view.View
 import com.facebook.flipper.core.FlipperConnection
 import com.facebook.flipper.core.FlipperObject
 import com.facebook.flipper.core.FlipperPlugin
 import com.facebook.flipper.core.FlipperResponder
 import com.uber.rib.core.RibDebugOverlay
-import com.uber.rib.core.RibEvent
 import com.uber.rib.core.RibEvents
+import com.uber.rib.core.RibRouterEvent
 import com.uber.rib.core.Router
 import com.uber.rib.core.ViewRouter
 import com.uber.rib.flipper.RibEventPayload.Companion.EVENT_PARAMETER_ID
@@ -43,7 +41,8 @@ class RibTreePlugin : FlipperPlugin {
   private var disposable: Disposable? = null
   private val events: ReplaySubject<RibEventPayload> = ReplaySubject.create(EVENTS_CAPACITY)
   private val sessionId: String = UUID.randomUUID().toString()
-  private val idsToOverlay: MutableMap<String, WeakReference<RibDebugOverlay>> = HashMap<String, WeakReference<RibDebugOverlay>>()
+  private val idsToOverlay: MutableMap<String, WeakReference<RibDebugOverlay>> =
+    HashMap<String, WeakReference<RibDebugOverlay>>()
   private val routersToId: WeakHashMap<Router<*>, String> = WeakHashMap<Router<*>, String>()
 
   companion object {
@@ -53,10 +52,9 @@ class RibTreePlugin : FlipperPlugin {
 
   init {
     // Start listening to rib events right away, since flipper client might connect only later on
-    RibEvents.getInstance()
-      .events
-      .filter { e: RibEvent -> e.parentRouter != null }
-      .map { e: RibEvent ->
+    RibEvents.routerEvents
+      .filter { e: RibRouterEvent -> e.parentRouter != null }
+      .map { e: RibRouterEvent ->
         val router: Router<*> = e.router
         val routerId = createRouterIdIfNeeded(router)
         val parentRouter: Router<*>? = e.parentRouter
@@ -73,9 +71,10 @@ class RibTreePlugin : FlipperPlugin {
   override fun onConnect(connection: FlipperConnection) {
     android.util.Log.d("RibTreeFlipperPlugin", "onConnect()")
     this.connection = connection
-    disposable = events.subscribe { e: RibEventPayload ->
-      this.connection?.send(e.eventName, e.flipperPayload)
-    }
+    disposable =
+      events.subscribe { e: RibEventPayload ->
+        this.connection?.send(e.eventName, e.flipperPayload)
+      }
     connection.receive(SHOW_HIGHLIGHT.toString()) { params: FlipperObject, _: FlipperResponder? ->
       val id: String = params.getString(EVENT_PARAMETER_ID)
       val router: Router<*>? = getRouterById(id)

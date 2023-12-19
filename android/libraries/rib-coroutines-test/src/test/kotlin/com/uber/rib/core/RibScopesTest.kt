@@ -17,8 +17,8 @@ package com.uber.rib.core
 
 import android.app.Application
 import com.google.common.truth.Truth.assertThat
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -27,10 +27,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.mock
-import java.lang.RuntimeException
-import kotlin.coroutines.CoroutineContext
 
-@OptIn(ExperimentalCoroutinesApi::class)
 internal class RibScopesTest {
 
   @get:Rule var rule = RibCoroutinesRule()
@@ -39,11 +36,12 @@ internal class RibScopesTest {
   internal fun testScopeLifecycle() = runTest {
     val interactor = FakeInteractor<Presenter, Router<*>>()
     interactor.attach()
-    val job = interactor.coroutineScope.launch {
-      while (isActive) {
-        delay(5L)
+    val job =
+      interactor.coroutineScope.launch {
+        while (isActive) {
+          delay(5L)
+        }
       }
-    }
     assertThat(job.isActive).isTrue()
     interactor.detach()
     assertThat(job.isActive).isFalse()
@@ -55,11 +53,12 @@ internal class RibScopesTest {
     interactor.attach()
     interactor.enableTestScopeOverride()
 
-    val job = interactor.coroutineScope.launch {
-      while (isActive) {
-        delay(5L)
+    val job =
+      interactor.coroutineScope.launch {
+        while (isActive) {
+          delay(5L)
+        }
       }
-    }
     assertThat(job.isActive).isTrue()
     interactor.detach()
     assertThat(job.isActive).isFalse()
@@ -67,7 +66,6 @@ internal class RibScopesTest {
 
   @Test()
   internal fun testScopeCaching() {
-
     val interactor1 = FakeInteractor<Presenter, Router<*>>()
     val interactor2 = FakeInteractor<Presenter, Router<*>>()
     interactor1.attach()
@@ -81,6 +79,8 @@ internal class RibScopesTest {
     assertThat(interactor1mainScope1).isNotEqualTo(interactor2mainScope1)
   }
 
+  // Bad test: The RuntimeException thrown is actually NoSuchElementException (handler exceptions is
+  // empty).
   @Test(expected = RuntimeException::class)
   internal fun testUncaughtHandler() = runTest {
     val handler = TestUncaughtExceptionCaptor()
@@ -88,26 +88,23 @@ internal class RibScopesTest {
 
     val interactor = FakeInteractor<Presenter, Router<*>>()
     interactor.attach()
-    interactor.coroutineScope.launch {
-      throw RuntimeException("mainScope failed")
-    }
-    throw(handler.exceptions.first())
+    interactor.coroutineScope.launch { throw RuntimeException("mainScope failed") }
+    throw (handler.exceptions.first())
   }
 
+  // Bad test: The RuntimeException is actually thrown by Interactor.requestScope(), because it is
+  // called before
+  // attaching the interactor.
   @Test(expected = RuntimeException::class)
   internal fun testException() = runTest {
-
     val interactor = FakeInteractor<Presenter, Router<*>>()
     interactor.enableTestScopeOverride()
     interactor.attach()
-    interactor.coroutineScope.launch {
-      throw RuntimeException("mainScope failed")
-    }
+    interactor.coroutineScope.launch { throw RuntimeException("mainScope failed") }
   }
 
   @Test()
   internal fun testSetTestScopeOverride() {
-
     val interactor = FakeInteractor<Presenter, Router<*>>()
     interactor.attach()
 
@@ -128,7 +125,6 @@ internal class RibScopesTest {
 
   @Test()
   internal fun testSetTestScopeOnApplicationOverride() {
-
     // Can use mock since all logic is in extension function.
     val application: Application = mock()
 
