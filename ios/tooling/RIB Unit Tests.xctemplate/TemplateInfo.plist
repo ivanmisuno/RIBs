@@ -40,5 +40,7 @@
 			<string>true</string>
 		</dict>
 	</array>
+	<key>SupportsSwiftPackage</key>
+	<true/>
 </dict>
 </plist>
